@@ -25,7 +25,7 @@ async function load(start, end) {
   const q = start ? `?start=${start}&end=${end}` : "";
   loadSocial(q, id);                        // slow (LinkedIn) – runs in parallel, renders when ready
   try {
-    const r = await fetch("/api/tracker" + q);
+    const r = await fetch("/svc/tracker" + q);
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
     const d = await r.json();
     if (id === runId) render(d);
@@ -120,7 +120,7 @@ async function loadSocial(q, id) {
   $("socialSub").innerHTML = `<span class="spin"></span>Loading Facebook, Instagram and LinkedIn (LinkedIn can take ~20 seconds)…`;
   $("platforms").innerHTML = $("liBreakdown").innerHTML = $("liCards").innerHTML = $("liNote").textContent = "";
   try {
-    const r = await fetch("/api/social" + q);
+    const r = await fetch("/svc/social" + q);
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
     const s = await r.json();
     if (id === runId) renderSocial(s);
@@ -289,7 +289,7 @@ exportMenu.addEventListener("click", async (e) => {
 });
 
 (async () => {
-  cfg = await (await fetch("/api/config")).json();
+  cfg = await (await fetch("/svc/config")).json();
   const qs = new URLSearchParams(location.search);   // e.g. /?start=2026-11-10&end=2026-11-16
   load(qs.get("start") || cfg.default_start, qs.get("end") || cfg.default_end);
 })();

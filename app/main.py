@@ -58,6 +58,7 @@ def _ttl(end: date) -> int:
 
 
 @app.get("/api/config")
+@app.get("/svc/config")   # same endpoint; the page uses /svc because Vercel 404s unknown /api/* paths
 def get_config():
     s, e = weeks.default_range()
     return {"mode": "live" if config.LIVE else "sample", "default_start": s.isoformat(), "default_end": e.isoformat(),
@@ -68,6 +69,7 @@ def get_config():
 
 
 @app.get("/api/tracker")
+@app.get("/svc/tracker")   # same endpoint; the page uses /svc because Vercel 404s unknown /api/* paths
 def tracker(start: str | None = None, end: str | None = None):
     try:
         if start:
@@ -132,6 +134,7 @@ def _parse_range(start: str | None, end: str | None) -> tuple[date, date]:
 
 
 @app.get("/api/social")
+@app.get("/svc/social")   # same endpoint; the page uses /svc because Vercel 404s unknown /api/* paths
 def social_api(start: str | None = None, end: str | None = None):
     """Facebook / Instagram (Meta Graph API) + LinkedIn (Apify). Separate from /api/tracker because LinkedIn takes ~20s."""
     if not config.SOCIAL_LIVE:
