@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Weekly Tracker - Wepsol</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/tracker.css">
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/logo.svg" alt="Wepsol">
+      <div class="heading"><h1>Weekly Tracker</h1></div>
+    </div>
+    <div class="topbar-right">
+      <div class="week-nav">
+        <button class="btn" id="prev" title="Previous period">&larr;</button>
+        <button class="btn" id="next" title="Next period">&rarr;</button>
+      </div>
+      <div class="range">
+        <label for="from">Date range</label>
+        <div class="field">
+          <input type="date" id="from"><span class="to">to</span><input type="date" id="to">
+        </div>
+      </div>
+      <button class="btn primary" id="apply">Apply</button>
+      <div class="exp">
+        <button class="btn" id="exportBtn" aria-haspopup="true">Export &#9662;</button>
+        <div class="exp-menu" id="exportMenu" hidden>
+          <button type="button" data-f="pdf"><b>PDF</b><small>Print-ready pages of this report</small></button>
+          <button type="button" data-f="csv"><b>CSV</b><small>Every table as data (opens in Excel)</small></button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="print-only" id="printPeriod"></div>
+
+  <main class="canvas" id="canvas">
+    <div id="banner" class="banner hidden"></div>
+
+    <section class="report-section">
+      <div class="section-head"><div class="section-meta">
+        <span class="eyebrow">Section 01 · GA4</span>
+        <h2 class="section-title">Website traffic</h2>
+        <p class="section-subtitle" id="trafficSub"></p>
+      </div></div>
+      <div class="grid2">
+        <div><table class="t" id="trafficTable"></table></div>
+        <div>
+          <div class="legend">
+            <span style="--c:#2f6df6">New users</span><span style="--c:#12b5c8">Total users</span>
+            <span style="--c:#e4004f">Sessions</span><span style="--c:#6b7280">Weekly target</span>
+          </div>
+          <div id="chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="report-section">
+      <div class="section-head"><div class="section-meta">
+        <span class="eyebrow">Section 02 · Search Console</span>
+        <h2 class="section-title">Search &amp; keywords</h2>
+        <p class="section-subtitle" id="kwSub"></p>
+      </div></div>
+      <table class="t" id="kwTable"></table>
+      <table class="t" id="productKwTable"></table>
+      <div id="kwNote" class="notes"></div>
+    </section>
+
+    <section class="report-section">
+      <div class="section-head"><div class="section-meta">
+        <span class="eyebrow">Section 03 · Social</span>
+        <h2 class="section-title">Social media marketing</h2>
+        <p class="section-subtitle" id="socialSub">Loading Facebook, Instagram and LinkedIn…</p>
+      </div></div>
+      <div class="platforms" id="platforms"></div>
+      <h3 class="subhead" id="liHead">LinkedIn posts by product and post type</h3>
+      <table class="t" id="liBreakdown"></table>
+      <div id="liNote" class="notes"></div>
+      <div class="cards" id="liCards"></div>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

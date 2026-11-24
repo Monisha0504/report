@@ -1,0 +1,14 @@
+# --- secrets: NEVER commit ---
+.env
+.env.*
+!.env.example
+
+# --- private business data (this repo is public): keep on your machine / the server, not in Git ---
+data/*
+!data/.gitkeep
+
+# --- python / tooling ---
+__pycache__/
+*.pyc
+.venv/
+.vercel/
