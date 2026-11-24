@@ -150,6 +150,19 @@ def social_api(start: str | None = None, end: str | None = None):
             "previous": {"label": weeks.label(*prev)}, **data}
 
 
+@app.get("/api/index")
+def api_index(op: str = "config", start: str | None = None, end: str | None = None):
+    """One endpoint for hosts where the function only sees its own file path (Vercel):
+    /api/index?op=config | tracker | social  (+ start/end). The other routes stay for local use."""
+    if op == "config":
+        return get_config()
+    if op == "tracker":
+        return tracker(start, end)
+    if op == "social":
+        return social_api(start, end)
+    raise HTTPException(404, "unknown op")
+
+
 @app.get("/")
 def index():
     return FileResponse(STATIC / "index.html")
