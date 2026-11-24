@@ -41,3 +41,9 @@ Notes: Vercel's disk is read-only (caches use /tmp and are lost on cold starts);
 ## What is (and is not) in Git
 Pushed: `app/`, `static/`, `api/`, `vercel.json`, `requirements.txt`, `run.bat`, `.env.example`, this README.
 Never pushed (see `.gitignore`): `.env` (all API keys), everything in `data/` (LinkedIn export, keyword-volume and follower caches), `__pycache__/`.
+
+## LinkedIn admin data without a file (service account)
+1. console.cloud.google.com -> create a project you own -> APIs & Services -> enable **Google Sheets API**.
+2. IAM & Admin -> Service Accounts -> create one -> Keys -> Add key -> JSON (downloads a file).
+3. Open the reporting Google Sheet -> Share -> add the service account's e-mail (it ends in `.iam.gserviceaccount.com`) as **Viewer**.
+4. Locally set `GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE=path\to\key.json`; on Vercel add `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON` with the file's whole text, then redeploy.

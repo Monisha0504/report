@@ -282,11 +282,14 @@ def _rows_from_values(values: list[list]) -> list[dict]:
 def _rows_from_api() -> list[dict]:
     """Live read of the Google Sheet tab. Uses a service account if GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE is set (the sheet must be
     shared with its e-mail as Viewer), otherwise the OAuth token in GOOGLE_SHEETS_TOKEN_JSON."""
-    sa = os.getenv("GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE", "")
-    if sa:
+    sa_file = os.getenv("GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE", "")
+    sa_json = os.getenv("GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON", "")   # the key file's text, for hosts without files (Vercel)
+    if sa_file or sa_json:
         from google.auth.transport.requests import Request
         from google.oauth2 import service_account
-        creds = service_account.Credentials.from_service_account_file(sa, scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
+        scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+        creds = (service_account.Credentials.from_service_account_info(json.loads(sa_json), scopes=scopes) if sa_json
+                 else service_account.Credentials.from_service_account_file(sa_file, scopes=scopes))
         creds.refresh(Request())
         token = creds.token
     else:
