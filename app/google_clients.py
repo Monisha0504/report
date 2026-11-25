@@ -209,9 +209,10 @@ def gsc_buckets(start: date, end: date) -> dict:
 
     # Keyword Planner volume decides "with volume" (counted) vs "no volume", exactly like the dashboard
     vols: dict[str, int] = {}
+    vol_warning = None
     if volumes.available():
         ranked = {q for q, (imp, w) in stores["all"].items() if imp >= config.MIN_IMPRESSIONS and imp > 0 and _bucket(w / imp)}
-        vols = volumes.get_volumes(list(ranked))
+        vols, vol_warning = volumes.get_volumes_ex(list(ranked))
 
     def count(store: dict) -> dict:
         out = {b: 0 for b in config.KEYWORD_BUCKETS}
@@ -237,7 +238,7 @@ def gsc_buckets(start: date, end: date) -> dict:
         return out
 
     res = {n: count(stores[n]) for n in names}
-    return {"all": res["all"], "no_blogs": res["no_blogs"], "volume_applied": bool(vols),
+    return {"all": res["all"], "no_blogs": res["no_blogs"], "volume_applied": bool(vols), "volume_warning": vol_warning,
             "products": {k: {"label": v["label"], **res[k]} for k, v in prod.PRODUCTS.items()}}
 
 

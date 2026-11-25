@@ -6,6 +6,7 @@
 # --- private business data (this repo is public): keep on your machine / the server, not in Git ---
 data/*
 !data/.gitkeep
+!data/volumes_seed.json
 
 # --- python / tooling ---
 __pycache__/

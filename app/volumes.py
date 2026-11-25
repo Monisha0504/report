@@ -14,8 +14,14 @@ import requests
 
 log = logging.getLogger("tracker.volumes")
 from . import config
-SEED = Path(__file__).resolve().parent.parent / "data" / "volumes.json"   # shipped with the code
+import hashlib
+import threading
+_DATA = Path(__file__).resolve().parent.parent / "data"
+LOCAL_SEED = _DATA / "volumes.json"           # plain cache from earlier local runs (not committed)
+HASH_SEED = _DATA / "volumes_seed.json"       # committed: sha1(keyword)[:16] -> volume, so no readable keyword list is published
 CACHE = config.DATA_DIR / "volumes.json"
+_lock = threading.Lock()                      # one lookup at a time: parallel requests must not repeat the same Google calls
+_seed: dict | None = None
 MAX_AGE = 30 * 86400
 VERSIONS = ("v24", "v23", "v22")
 INDIA, ENGLISH = "geoTargetConstants/2356", "languageConstants/1000"
@@ -47,7 +53,7 @@ def _load() -> dict:
     global _cache
     if _cache is None:
         _cache = {}
-        for p in (SEED, CACHE):
+        for p in (LOCAL_SEED, CACHE):
             try:
                 _cache.update(json.loads(p.read_text(encoding="utf-8")))
             except Exception:
@@ -93,20 +99,61 @@ def _call(batch: list[str]) -> dict[str, int]:
     raise RuntimeError(f"Keyword Planner error: HTTP {last.status_code if last is not None else 404} {last.text[:200] if last is not None else ''}")
 
 
+def _hkey(k: str) -> str:
+    return hashlib.sha1(k.lower().encode("utf-8")).hexdigest()[:16]
+
+
+def _load_seed() -> dict:
+    global _seed
+    if _seed is None:
+        try:
+            _seed = json.loads(HASH_SEED.read_text(encoding="utf-8"))
+        except Exception:
+            _seed = {}
+    return _seed
+
+
+def get_volumes_ex(keywords: list[str]) -> tuple[dict[str, int], str | None]:
+    """(keyword -> monthly searches in India, warning). Order of preference per keyword: fresh cache, shipped seed, Google
+    (Keyword Planner). If Google refuses (quota, outage) the keywords it could not check are left out - the caller then treats
+    them as 'no volume' - and a warning is returned instead of failing the whole report."""
+    with _lock:
+        cache, seed, now = _load(), _load_seed(), time.time()
+        want = sorted({k.lower() for k in keywords})
+        out: dict[str, int] = {}
+        todo: list[str] = []
+        for k in want:
+            hit = cache.get(k)
+            if hit and now - hit[1] <= MAX_AGE:
+                out[k] = hit[0]
+            elif _hkey(k) in seed:
+                out[k] = seed[_hkey(k)]
+            else:
+                todo.append(k)
+                if hit:                      # stale value: better than nothing if Google refuses
+                    out[k] = hit[0]
+        valid = [k for k in todo if _valid(k)]
+        for k in todo:
+            if k not in valid:
+                cache[k] = [0, now]
+                out[k] = 0
+        warning = None
+        for i in range(0, len(valid), 700):
+            chunk = valid[i:i + 700]
+            try:
+                got = _call(chunk)
+            except Exception as e:
+                left = len(valid) - i
+                log.warning("Keyword Planner lookup failed (%d keywords unchecked): %s", left, e)
+                warning = f"Google Keyword Planner could not be reached right now ({str(e)[:90]}), so {left} new keyword(s) are counted as 'no volume'. Try again later."
+                break
+            for k in chunk:
+                cache[k] = [got.get(k, 0), now]
+                out[k] = cache[k][0]
+        if todo:
+            _save()
+        return out, warning
+
+
 def get_volumes(keywords: list[str]) -> dict[str, int]:
-    """keyword (lowercase) -> average monthly searches in India (0 = no volume / not found)."""
-    cache, now = _load(), time.time()
-    want = sorted({k.lower() for k in keywords})
-    todo = [k for k in want if k not in cache or now - cache[k][1] > MAX_AGE]
-    valid = [k for k in todo if _valid(k)]
-    for k in todo:
-        if k not in valid:
-            cache[k] = [0, now]
-    for i in range(0, len(valid), 700):
-        chunk = valid[i:i + 700]
-        got = _call(chunk)
-        for k in chunk:
-            cache[k] = [got.get(k, 0), now]
-    if todo:
-        _save()
-    return {k: cache[k][0] for k in want}
+    return get_volumes_ex(keywords)[0]

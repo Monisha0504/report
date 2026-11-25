@@ -106,6 +106,7 @@ function renderSearch(d) {
   $("kwNote").textContent = cur.volume_applied
     ? "Product keywords are the queries that ranked on each product's pages (fluidPrint: non-blog fluidprint / managed-print pages · floTax: its four product pages · GST Verification: every page with “gst” in its URL, so it includes GST blogs and overlaps floTax · fluidPro: its service page)."
     : "Keyword volume is not available, so keywords without Keyword Planner volume are included in these counts.";
+  if (cur.volume_warning) $("kwNote").textContent += "  ⚠ " + cur.volume_warning;
 }
 
 // ---------------------------------------------------------------- social
