@@ -434,9 +434,3 @@ $("csvBtn").addEventListener("click", exportCsv);
 const applyTheme = (t) => { document.documentElement.dataset.theme = t; try { localStorage.setItem("theme", t); } catch (e) {} };
 applyTheme((() => { try { return new URLSearchParams(location.search).get("theme") || localStorage.getItem("theme") || "light"; } catch (e) { return "light"; } })());
 $("themeBtn").addEventListener("click", () => { applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); if (D) { drawTraffic(); drawKw(); } });
-let toastTimer;
-document.querySelectorAll("[data-soon]").forEach((a) => a.addEventListener("click", (e) => {
-  e.preventDefault();
-  $("toast").textContent = "This page is not part of the tracker yet."; $("toast").hidden = false;
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("toast").hidden = true; }, 2200);
-}));
