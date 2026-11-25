@@ -227,6 +227,11 @@ function drawKw() {
 
 // ---------------------------------------------------------------- 03 social
 const PCOL = { facebook: "#1e40af", instagram: "#be185d", linkedin: "#0a66c2" };
+const SHOW = {
+  linkedin: { "Posts": "Posts", "Impressions (total)": "Impressions", "Engagement (organic)": "Engagement", "Engagement (posts)": "Engagement" },
+  facebook: { "Total Posts": "Total Posts", "Page Followers": "Page Followers", "Total Reach": "Total Reach", "Engagement": "Engagement" },
+  instagram: { "Total Posts": "Total Posts", "Page Followers": "Page Followers", "Total Reach": "Total Reach", "Engagement": "Engagement" },
+};
 const PNAME = { linkedin: "LinkedIn stats", facebook: "Facebook", instagram: "Instagram" };
 
 async function loadSocial(q, id) {
@@ -254,7 +259,7 @@ async function loadSocial(q, id) {
 function renderSocial() {
   const s = S, W = [...s.li_weeks].reverse();       // oldest first, like the other sections
   $("socialSub").textContent = "";
-  const head = `<tr><th class="first">Metrics</th>${W.map((w, i) => `<th class="${i === 2 ? "cur" : ""}">${weekName(w.start, w.end).toUpperCase()}</th>`).join("")}</tr>`;
+  const headFor = (key) => `<tr><th class="first">${key === "linkedin" ? "Details" : "Metrics"}</th>${W.map((w, i) => `<th class="${i === 2 ? "cur" : ""}">${weekName(w.start, w.end).toUpperCase()}</th>`).join("")}</tr>`;
   let cards = "";
   for (const key of ["linkedin", "facebook", "instagram"]) {
     const p = s.platforms[key];
@@ -263,11 +268,13 @@ function renderSocial() {
     else {
       const rowsHtml = [];
       if (key === "linkedin") rowsHtml.push(`<tr><td class="first">Followers</td><td class="na">–</td><td class="na">–</td><td class="cur"><b>${fmt(p.followers)}</b></td></tr>`);
-      for (const [name, v] of p.metrics) {
+      for (const [name0, v] of p.metrics) {
+        const name = SHOW[key][name0];                 // only the rows of the Weekly Report: others are left out
+        if (!name) continue;
         const vals = [v.prev2, v.prev, v.cur];
         rowsHtml.push(`<tr><td class="first">${esc(name)}</td>${vals.map((x, i) => `<td class="${i === 2 ? "cur" : ""}">${x == null ? '<span class="na">–</span>' : `<b>${fmt(x)}</b>`}${i ? dl(x, vals[i - 1], { stack: true }) : ""}</td>`).join("")}</tr>`);
       }
-      body = `<table class="grid small">${head}${rowsHtml.join("")}</table>` +
+      body = `<table class="grid small">${headFor(key)}${rowsHtml.join("")}</table>` +
         (p.admin_error ? `<div class="warn">${esc(p.admin_error)}</div>` : "") +
         (p.unavailable && p.unavailable.length ? `<div class="warn">${p.unavailable.join(", ")}: needs LinkedIn admin data.</div>` : "");
     }
