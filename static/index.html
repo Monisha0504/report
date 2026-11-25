@@ -16,11 +16,21 @@
   <aside class="side" id="side">
     <img class="logo" src="assets/logo.svg" alt="Wepsol">
     <div class="side-label">Workspace</div>
+    <a class="nav" href="#" data-soon="1"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Weekly Report</a>
     <a class="nav active" href="#top" data-nav="top"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Executive Snapshot</a>
-    <div class="side-label">Sections</div>
-    <a class="nav" href="#traffic" data-nav="traffic"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Website traffic</a>
-    <a class="nav" href="#search" data-nav="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search &amp; keywords</a>
-    <a class="nav" href="#social" data-nav="social"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8.6 10.6 6.8-3.2M8.6 13.4l6.8 3.2"/></svg>Social media</a>
+    <div class="side-label">Data sheets</div>
+    <a class="nav sheet" href="#traffic" data-nav="traffic"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><i>▸</i>Google Analytics<span class="cnt">6</span></a>
+    <a class="nav sheet" href="#" data-soon="1"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></svg><i>▸</i>Blogs<span class="cnt">2</span></a>
+    <a class="nav sheet" href="#search" data-nav="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><i>▸</i>Search Console<span class="cnt">2</span></a>
+    <a class="nav sheet" href="#social" data-nav="social"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8.6 10.6 6.8-3.2M8.6 13.4l6.8 3.2"/></svg><i>▸</i>Social Media<span class="cnt">5</span></a>
+    <a class="nav sheet" href="#" data-soon="1"><svg viewBox="0 0 24 24"><path d="M3 10v4h4l6 4V6L7 10zM17 9a4 4 0 0 1 0 6"/></svg><i>▸</i>Ads<span class="cnt">1</span></a>
+    <a class="nav sheet" href="#search" data-nav="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><i>▸</i>Keyword Ranking<span class="cnt">1</span></a>
+    <a class="nav sheet" href="#" data-soon="1"><svg viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19zM14 7l3 3"/></svg><i>▸</i>Manual entry<span class="cnt">1</span></a>
+    <div class="side-bottom">
+      <button class="theme" id="themeBtn"><span class="moon"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></span>Theme</button>
+      <div class="user"><span class="av">TV</span><span class="who"><b>Test Viewer</b><small>viewer-test@wepsol.com</small></span><em>&#8963;</em></div>
+    </div>
+    <div class="toast" id="toast" hidden></div>
   </aside>
 
   <div class="main" id="top">

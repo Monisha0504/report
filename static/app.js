@@ -154,11 +154,11 @@ function axes(W, H, m, max) {
   let s = "";
   for (let i = 0; i <= 4; i++) {
     const v = (max / 4) * i, y = H - m.b - (v / max) * (H - m.t - m.b);
-    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="rgba(20,22,31,.08)" stroke-dasharray="${i ? "3 4" : ""}"/><text x="${m.l - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#6b7280">${fmt(v)}</text>`;
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="currentColor" stroke-opacity=".12" stroke-dasharray="${i ? "3 4" : ""}"/><text x="${m.l - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#6b7280">${fmt(v)}</text>`;
   }
   return s;
 }
-const xLabels = (P, x, H) => P.map((p, i) => `<text x="${x(i)}" y="${H - 22}" text-anchor="middle" font-size="12" font-weight="600" fill="#14161f">${weekName(p.start, p.end)}</text><text x="${x(i)}" y="${H - 7}" text-anchor="middle" font-size="11" fill="#6b7280">${rangeLabel(p.start, p.end)}</text>`).join("");
+const xLabels = (P, x, H) => P.map((p, i) => `<text x="${x(i)}" y="${H - 22}" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">${weekName(p.start, p.end)}</text><text x="${x(i)}" y="${H - 7}" text-anchor="middle" font-size="11" fill="#6b7280">${rangeLabel(p.start, p.end)}</text>`).join("");
 
 function drawTraffic() {
   const P = D.periods, sc = ui.scope, g = (p) => p.ga[sc];
@@ -173,7 +173,7 @@ function drawTraffic() {
   s += `<path d="M${P.map((p, i) => `${x(i)},${y(g(p)[main[0]])}`).join(" L")} L${x(P.length - 1)},${y(0)} L${x(0)},${y(0)} Z" fill="${COL.users}" opacity=".08"/>`;
   for (const [k, col] of series) {
     s += `<polyline fill="none" stroke="${col}" stroke-width="2.5" points="${P.map((p, i) => `${x(i)},${y(g(p)[k])}`).join(" ")}"/>`;
-    P.forEach((p, i) => { s += `<circle cx="${x(i)}" cy="${y(g(p)[k])}" r="5" fill="#fff" stroke="${col}" stroke-width="2.5"/><text x="${x(i)}" y="${y(g(p)[k]) - 11}" text-anchor="middle" font-size="12" font-weight="700" fill="${col}">${fmt(g(p)[k])}</text>`; });
+    P.forEach((p, i) => { s += `<circle cx="${x(i)}" cy="${y(g(p)[k])}" r="5" style="fill:var(--surface)" stroke="${col}" stroke-width="2.5"/><text x="${x(i)}" y="${y(g(p)[k]) - 11}" text-anchor="middle" font-size="12" font-weight="700" fill="${col}">${fmt(g(p)[k])}</text>`; });
   }
   $("trendChart").innerHTML = s + "</svg>";
   // stacked channel bars (users)
@@ -429,3 +429,14 @@ $("csvBtn").addEventListener("click", exportCsv);
   const qs = new URLSearchParams(location.search);   // e.g. /?start=2026-11-10&end=2026-11-16
   load(qs.get("start") || cfg.default_start, qs.get("end") || cfg.default_end);
 })();
+
+// ---------------------------------------------------------------- theme + sidebar
+const applyTheme = (t) => { document.documentElement.dataset.theme = t; try { localStorage.setItem("theme", t); } catch (e) {} };
+applyTheme((() => { try { return new URLSearchParams(location.search).get("theme") || localStorage.getItem("theme") || "light"; } catch (e) { return "light"; } })());
+$("themeBtn").addEventListener("click", () => { applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); if (D) { drawTraffic(); drawKw(); } });
+let toastTimer;
+document.querySelectorAll("[data-soon]").forEach((a) => a.addEventListener("click", (e) => {
+  e.preventDefault();
+  $("toast").textContent = "This page is not part of the tracker yet."; $("toast").hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("toast").hidden = true; }, 2200);
+}));
