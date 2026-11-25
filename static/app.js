@@ -48,17 +48,43 @@ async function load(start, end) {
 }
 
 function buildPicker(start, end) {
-  const n = spanDays(start, end), opts = [];
-  const seen = new Set();
-  const add = (a, b) => { const v = a + "|" + b; if (seen.has(v)) return; seen.add(v); opts.push([v, `${weekName(a, b)} ${a.slice(0, 4)} · ${rangeLabel(a, b)}`]); };
-  let a = cfg.default_start, b = cfg.default_end;
-  for (let i = 0; i < 12; i++) { add(a, b); a = addDays(a, -7); b = addDays(b, -7); }
-  if (!seen.has(start + "|" + end)) opts.unshift([start + "|" + end, `${rangeLabel(start, end)} (custom)`]);
-  $("weekSelect").innerHTML = opts.map(([v, t]) => `<option value="${v}">${t}</option>`).join("") + `<option value="custom">Custom range…</option>`;
-  $("weekSelect").value = start + "|" + end;
-  $("from").value = start; $("to").value = end;
-  $("custom").hidden = true;
+  $("rangeBtnText").textContent = spanDays(start, end) === 7 ? `${weekName(start, end)} ${start.slice(0, 4)} · ${rangeLabel(start, end)}` : `${rangeLabel(start, end)} ${end.slice(0, 4)}`;
+  cal.a = start; cal.b = end; cal.y = +start.slice(0, 4); cal.m = +start.slice(5, 7) - 1;
+  $("cal").hidden = true;
 }
+
+// ---------------------------------------------------------------- date range calendar
+const cal = { a: null, b: null, y: 2026, m: 10 };
+const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+function drawCal() {
+  const first = new Date(Date.UTC(cal.y, cal.m, 1)), lead = (first.getUTCDay() + 6) % 7;   // Monday first
+  const days = new Date(Date.UTC(cal.y, cal.m + 1, 0)).getUTCDate();
+  $("calTitle").textContent = `${["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][cal.m]} ${cal.y}`;
+  let h = "";
+  for (let i = 0; i < lead; i++) h += "<span></span>";
+  for (let d = 1; d <= days; d++) {
+    const v = iso(cal.y, cal.m, d), lo = cal.a, hi = cal.b || cal.a;
+    const cls = [v === lo ? "s" : "", v === hi ? "e" : "", v > lo && v < hi ? "in" : "", v > cfg.latest_date ? "out" : ""].join(" ");
+    h += `<button class="${cls}" data-d="${v}">${d}</button>`;
+  }
+  $("calGrid").innerHTML = h;
+  $("calSel").textContent = cal.b ? `${dayName(cal.a)} – ${dayName(cal.b)} ${cal.b.slice(0, 4)} · ${spanDays(cal.a, cal.b)} days` : `${dayName(cal.a)} · now pick the last day`;
+}
+$("rangeBtn").addEventListener("click", (e) => { e.stopPropagation(); $("cal").hidden = !$("cal").hidden; if (!$("cal").hidden) { cal.y = +cal.a.slice(0, 4); cal.m = +cal.a.slice(5, 7) - 1; drawCal(); } });
+$("cal").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => { $("cal").hidden = true; });
+$("calPrev").addEventListener("click", () => { if (--cal.m < 0) { cal.m = 11; cal.y--; } drawCal(); });
+$("calNext").addEventListener("click", () => { if (++cal.m > 11) { cal.m = 0; cal.y++; } drawCal(); });
+$("calGrid").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-d]"); if (!b) return;
+  const v = b.dataset.d;
+  if (cal.b || v < cal.a) { cal.a = v; cal.b = null; }       // first click = start
+  else cal.b = v;                                            // second click = end
+  drawCal();
+});
+$("calWeek").addEventListener("click", () => { cal.b = addDays(cal.a, 6); drawCal(); });
+$("calLatest").addEventListener("click", () => { cal.a = cfg.default_start; cal.b = cfg.default_end; cal.y = +cal.a.slice(0, 4); cal.m = +cal.a.slice(5, 7) - 1; drawCal(); });
+$("calApply").addEventListener("click", () => { if (cal.a) load(cal.a, cal.b || addDays(cal.a, 6)); });
 
 function render(d) {
   D = d;
@@ -320,15 +346,8 @@ $("scopeSeg").addEventListener("click", (e) => { const b = e.target.closest("but
 $("kwTabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || !D) return; ui.group = b.dataset.g; renderSearch(); });
 $("blogSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || !D) return; ui.blogs = b.dataset.b; renderSearch(); });
 $("liWeekSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || !S) return; ui.liWeek = +b.dataset.w; renderLiPosts(); });
-$("weekSelect").addEventListener("change", () => {
-  const v = $("weekSelect").value;
-  if (v === "custom") { $("custom").hidden = false; return; }
-  const [a, b] = v.split("|"); load(a, b);
-});
-$("from").addEventListener("change", () => { if ($("from").value) $("to").value = addDays($("from").value, 6); });
-$("apply").addEventListener("click", () => $("from").value && $("to").value && load($("from").value, $("to").value));
 function step(dir) {
-  const a = D ? D.period.start : $("from").value, b = D ? D.period.end : $("to").value;
+  const a = D ? D.period.start : cal.a, b = D ? D.period.end : cal.b;
   if (!a || !b) return;
   const n = spanDays(a, b) * dir;
   load(addDays(a, n), addDays(b, n));
