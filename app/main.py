@@ -87,15 +87,16 @@ def tracker(start: str | None = None, end: str | None = None):
     month_start = e.replace(day=1)
 
     try:
-        with ThreadPoolExecutor(8) as ex:
+        with ThreadPoolExecutor(9) as ex:
             ga = {p: ex.submit(cached, ("ga4", *p), _ttl(p[1]), lambda p=p: src.ga4_period(*p)) for p in periods}
             kw_cur = ex.submit(cached, ("gsc", s, e), _ttl(e), lambda: src.gsc_buckets(s, e))
             kw_prev = ex.submit(cached, ("gsc", *prev), _ttl(prev[1]), lambda: src.gsc_buckets(*prev))
+            kw_old = ex.submit(cached, ("gsc", *periods[0]), _ttl(periods[0][1]), lambda: src.gsc_buckets(*periods[0]))
             st_cur = ex.submit(cached, ("gst", s, e), _ttl(e), lambda: src.gsc_totals(s, e))
             st_prev = ex.submit(cached, ("gst", *prev), _ttl(prev[1]), lambda: src.gsc_totals(*prev))
             mtd = ex.submit(cached, ("mtd", month_start, e), _ttl(e), lambda: src.ga4_total_users(month_start, e))
             ga = {p: f.result() for p, f in ga.items()}
-            keywords = {"current": kw_cur.result(), "previous": kw_prev.result()}
+            keywords = {"current": kw_cur.result(), "previous": kw_prev.result(), "previous2": kw_old.result()}
             mtd = mtd.result()
             search = {"current": st_cur.result(), "previous": st_prev.result()}
     except Exception as exc:  # surface Google errors to the UI instead of a blank page
@@ -108,6 +109,7 @@ def tracker(start: str | None = None, end: str | None = None):
         "period": {"start": s.isoformat(), "end": e.isoformat(), "label": weeks.label(s, e)},
         "previous": {"start": prev[0].isoformat(), "end": prev[1].isoformat(), "label": weeks.label(*prev)},
         "traffic": {"current": cur, "previous": prv},
+        "periods": [{"label": weeks.label(*p), "start": p[0].isoformat(), "end": p[1].isoformat(), "ga": ga[p]} for p in periods],
         "trend": [{"label": weeks.label(*p), "start": p[0].isoformat(), "end": p[1].isoformat(),
                    "total_users": ga[p]["overall"]["total_users"], "new_users": ga[p]["overall"]["new_users"],
                    "sessions": ga[p]["overall"]["sessions"]} for p in periods],
@@ -140,14 +142,14 @@ def social_api(start: str | None = None, end: str | None = None):
     if not config.SOCIAL_LIVE:
         return {"enabled": False}
     s, e = _parse_range(start, end)
-    prev = weeks.shift(s, e, 1)
+    prev, prev2 = weeks.shift(s, e, 1), weeks.shift(s, e, 2)
     try:
-        data = cached(("social", s, e), 1800, lambda: social.social_report(s, e, prev))
+        data = cached(("social3", s, e), 1800, lambda: social.social_report(s, e, prev, prev2))
     except Exception as exc:
         log.exception("social failed")
         raise HTTPException(502, f"Social data error: {exc}")
     return {"enabled": True, "period": {"start": s.isoformat(), "end": e.isoformat(), "label": weeks.label(s, e)},
-            "previous": {"label": weeks.label(*prev)}, **data}
+            "previous": {"label": weeks.label(*prev)}, "previous2": {"label": weeks.label(*prev2)}, **data}
 
 
 @app.get("/api/index")

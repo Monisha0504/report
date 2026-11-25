@@ -16,7 +16,7 @@ from pathlib import Path
 import requests
 from urllib.parse import quote
 
-from . import config, linkedin_posts
+from . import config, linkedin_posts, weeks
 
 log = logging.getLogger("tracker.social")
 GRAPH = f"https://graph.facebook.com/{config.META_GRAPH_VERSION}"
@@ -400,8 +400,8 @@ def _li_cached(key: tuple, fn):
     return val
 
 
-def linkedin(start: date, end: date) -> dict:
-    lookback = (date.today() - start).days
+def linkedin(start: date, end: date, since: date | None = None) -> dict:
+    lookback = (date.today() - (since or start)).days    # `since` = oldest day any compared week needs, so one Apify call serves all weeks
     limit = "week" if lookback <= 7 else "month" if lookback <= 30 else "3months" if lookback <= 90 else "6months" if lookback <= 180 else "year"
     company = _li_cached(("company",), lambda: _apify("harvestapi/linkedin-company", {"companies": [config.LINKEDIN_URL]}))
     followers = company[0].get("followerCount") if company else None
@@ -438,8 +438,8 @@ def linkedin(start: date, end: date) -> dict:
 
 
 # ------------------------------------------------------------------ assemble
-def _pair(cur, prev):
-    return {"cur": cur, "prev": prev}
+def _pair(cur, prev, prev2=None):
+    return {"cur": cur, "prev": prev, "prev2": prev2}
 
 
 def _safe(fn, *a):
@@ -450,80 +450,94 @@ def _safe(fn, *a):
         return None, str(e)[:200]
 
 
-def social_report(start: date, end: date, prev: tuple[date, date]) -> dict:
-    ps, pe = prev
-    with ThreadPoolExecutor(6) as ex:
-        fb_both = ex.submit(lambda: (_safe(facebook, start, end), _safe(facebook, ps, pe)))   # Meta page API: keep serial
-        jobs = {("ig", "cur"): ex.submit(_safe, instagram, start, end), ("ig", "prev"): ex.submit(_safe, instagram, ps, pe),
-                ("li", "cur"): ex.submit(_safe, linkedin, start, end), ("li", "prev"): ex.submit(_safe, linkedin, ps, pe)}
+def social_report(start: date, end: date, prev: tuple[date, date], prev2: tuple[date, date] | None = None) -> dict:
+    """Three equal windows, newest first: selected, previous, the one before. Every metric is {cur, prev, prev2}."""
+    wins = [(start, end), prev] + ([prev2] if prev2 else [])
+    since = min(w[0] for w in wins)
+    with ThreadPoolExecutor(8) as ex:
+        fb_all = ex.submit(lambda: [_safe(facebook, *w) for w in wins])      # Meta page API: keep serial
+        jobs = {}
+        for i, w in enumerate(wins):
+            jobs[("ig", i)] = ex.submit(_safe, instagram, *w)
+            jobs[("li", i)] = ex.submit(_safe, linkedin, w[0], w[1], since)
         r = {k: f.result() for k, f in jobs.items()}
-        r[("fb", "cur")], r[("fb", "prev")] = fb_both.result()
+        for i, v in enumerate(fb_all.result()):
+            r[("fb", i)] = v
+    n = len(wins)
 
-    def g(p, w):  # data of platform p for window w
-        return r[(p, w)][0]
+    def D(p):      # data of platform p for each window (None when that window failed)
+        return [r[(p, i)][0] for i in range(n)]
+
+    def trio(ds, fn):  # fn(window data) for each window -> {cur, prev, prev2}
+        vals = []
+        for d in ds:
+            try:
+                vals.append(fn(d) if d else None)
+            except Exception:
+                vals.append(None)
+        vals += [None] * (3 - len(vals))
+        return _pair(*vals[:3])
 
     out: dict = {"platforms": {}, "errors": {}}
-    # Facebook / Instagram: Reach and Engagement are summed over the POSTS PUBLISHED in the period (like the sheet);
-    # followers are as at the end of the period.
-    nv = lambda d, k: d["n"][k] if d else None
-    fc, fp = g("fb", "cur"), g("fb", "prev")
-    if fc:
-        i, ip = fc["insights"], (fp or {}).get("insights", {})
-        out["platforms"]["facebook"] = {"followers": fc["followers"], "followers_asof": True, "metrics": [
-            ["Total posts", _pair(nv(fc, "posts"), nv(fp, "posts"))],
-            ["Total reach (posts)", _pair(nv(fc, "reach"), nv(fp, "reach"))],
-            ["Total impressions (posts)", _pair(nv(fc, "views"), nv(fp, "views"))],
-            ["Engagement (posts)", _pair(nv(fc, "engagement"), nv(fp, "engagement"))],
-            ["Followers gained", _pair(i.get("page_daily_follows_unique"), ip.get("page_daily_follows_unique"))],
-            ["Page views", _pair(i.get("page_views_total"), ip.get("page_views_total"))]]}
+    nv = lambda k: (lambda d: d["n"][k])
+    # Facebook / Instagram: reach and engagement are summed over the POSTS PUBLISHED in each week (like the sheet);
+    # followers are as at the end of each week.
+    fb, ig, li = D("fb"), D("ig"), D("li")
+    if fb[0]:
+        out["platforms"]["facebook"] = {"followers": fb[0]["followers"], "followers_asof": True, "metrics": [
+            ["Total Posts", trio(fb, nv("posts"))], ["Page Followers", trio(fb, lambda d: d["followers"])],
+            ["Total Reach", trio(fb, nv("reach"))], ["Total Impressions", trio(fb, nv("views"))],
+            ["Engagement", trio(fb, nv("engagement"))],
+            ["Followers gained", trio(fb, lambda d: d["insights"].get("page_daily_follows_unique"))],
+            ["Page views", trio(fb, lambda d: d["insights"].get("page_views_total"))]]}
     else:
-        out["errors"]["facebook"] = r[("fb", "cur")][1]
-    ic, ipv = g("ig", "cur"), g("ig", "prev")
-    if ic:
-        i, ip = ic["insights"], (ipv or {}).get("insights", {})
-        out["platforms"]["instagram"] = {"followers": ic["followers"], "followers_asof": True, "metrics": [
-            ["Total posts", _pair(nv(ic, "posts"), nv(ipv, "posts"))],
-            ["Total reach (posts)", _pair(nv(ic, "reach"), nv(ipv, "reach"))],
-            ["Total impressions (posts)", _pair(nv(ic, "views"), nv(ipv, "views"))],
-            ["Engagement (posts)", _pair(nv(ic, "engagement"), nv(ipv, "engagement"))],
-            ["Followers gained", _pair(ic["gained"], (ipv or {}).get("gained"))],
-            ["Profile views", _pair(i["profile_views"], ip.get("profile_views"))],
-            ["Website clicks", _pair(i["website_clicks"], ip.get("website_clicks"))]]}
+        out["errors"]["facebook"] = r[("fb", 0)][1]
+    if ig[0]:
+        out["platforms"]["instagram"] = {"followers": ig[0]["followers"], "followers_asof": True, "metrics": [
+            ["Total Posts", trio(ig, nv("posts"))], ["Page Followers", trio(ig, lambda d: d["followers"])],
+            ["Total Reach", trio(ig, nv("reach"))], ["Total Impressions", trio(ig, nv("views"))],
+            ["Engagement", trio(ig, nv("engagement"))],
+            ["Followers gained", trio(ig, lambda d: d["gained"])],
+            ["Profile views", trio(ig, lambda d: d["insights"]["profile_views"])],
+            ["Website clicks", trio(ig, lambda d: d["insights"]["website_clicks"])]]}
     else:
-        out["errors"]["instagram"] = r[("ig", "cur")][1]
+        out["errors"]["instagram"] = r[("ig", 0)][1]
     # LinkedIn
-    lc, lp = g("li", "cur"), g("li", "prev")
-    if lc:
-        eng = lambda d: sum(p["engagement"] for p in d["posts"]) if d else None
-        ad, adp = lc.get("admin"), (lp or {}).get("admin")
-        pv = lambda k: _pair(ad[k] if ad else None, adp[k] if adp else None)
-        metrics = [["Total posts", _pair(len(lc["posts"]), len(lp["posts"]) if lp else None)]]
-        if ad:   # LinkedIn admin analytics for the selected period (same figures as the original dashboard)
-            metrics += [["Impressions (total)", pv("impressions_total")], ["Impressions (organic)", pv("impressions")],
-                        ["Clicks (organic)", pv("clicks")], ["Engagement (organic)", pv("engagement")],
-                        ["Total followers gained", pv("gained")], ["Total page views", pv("page_views")],
-                        ["Total unique visitors", pv("visitors")]]
+    if li[0]:
+        eng = lambda d: sum(p["engagement"] for p in d["posts"])
+        adm = lambda k: (lambda d: d["admin"][k] if d.get("admin") else None)
+        has_admin = bool(li[0].get("admin"))
+        metrics = [["Posts", trio(li, lambda d: len(d["posts"]))]]
+        if has_admin:   # LinkedIn admin analytics for each week (same figures as the original dashboard)
+            metrics += [["Impressions (total)", trio(li, adm("impressions_total"))], ["Impressions (organic)", trio(li, adm("impressions"))],
+                        ["Clicks (organic)", trio(li, adm("clicks"))], ["Engagement (organic)", trio(li, adm("engagement"))],
+                        ["Followers gained", trio(li, adm("gained"))], ["Page views", trio(li, adm("page_views"))],
+                        ["Unique visitors", trio(li, adm("visitors"))]]
         else:
-            metrics += [["Engagement (posts)", _pair(eng(lc), eng(lp))],
-                        ["Followers gained", _pair(_followers_gained_from_snapshots("linkedin", start, end),
-                                                   _followers_gained_from_snapshots("linkedin", ps, pe))]]
-        out["platforms"]["linkedin"] = {"followers": lc["followers"], "followers_asof": bool(ad), "metrics": metrics,
-                                        "unavailable": [] if ad else ["Impressions", "Clicks", "Page views", "Unique visitors"],
-                                        "admin_error": lc.get("admin_error")}
+            metrics += [["Engagement (posts)", trio(li, eng)]]
+        out["platforms"]["linkedin"] = {"followers": li[0]["followers"], "followers_asof": has_admin, "metrics": metrics,
+                                        "unavailable": [] if has_admin else ["Impressions", "Clicks", "Page views", "Unique visitors"],
+                                        "admin_error": li[0].get("admin_error")}
     else:
-        out["errors"]["linkedin"] = r[("li", "cur")][1]
+        out["errors"]["linkedin"] = r[("li", 0)][1]
 
-    # Totals + posts (a platform that failed or has no value for a metric is simply left out of the sum)
+    # Totals (a platform that failed or has no value for a metric is simply left out of the sum)
     def tot(key):
-        def add(ds):
-            vals = [d["n"][key] for d in ds if d and d["n"].get(key) is not None]
-            return sum(vals) if vals else None
-        return _pair(add((fc, ic, lc)), add((fp, ipv, lp)))
+        res = []
+        for i in range(3):
+            vals = [d[i]["n"][key] for d in (fb, ig, li) if i < n and d[i] and d[i]["n"].get(key) is not None]
+            res.append(sum(vals) if vals else None)
+        return _pair(*res)
     out["totals"] = {k: tot(k) for k in ("views", "engagement", "posts", "gained")}
-    li_posts = sorted(lc["posts"], key=lambda p: (p["date"], p["engagement"]), reverse=True) if lc else []
-    out["li_posts"] = li_posts
-    out["li_breakdown"] = linkedin_posts.breakdown(li_posts)
-    out["posts"] = []   # the mixed-platform list was replaced by the LinkedIn-only section
-    out["notes"] = ["LinkedIn impressions, clicks, page views, unique visitors and followers gained are admin-only analytics, so they come from the LinkedIn Analytics tab of the reporting Google Sheet (as in the original dashboard), summed per day over the selected period. Followers, posts and post reactions come from public data (Apify).",
-                    "Reach, impressions and engagement are summed over the posts published in the selected period (Facebook: unique people reached, and reactions + comments + shares; Instagram: reach, and likes + comments + shares + saves), not the whole account. A post's reach keeps growing for a few days after it is published. Followers are as at the end of the period for Facebook and Instagram."]
+    li_weeks = []
+    for i, w in enumerate(wins):
+        posts = sorted(li[i]["posts"], key=lambda p: (p["date"], p["engagement"]), reverse=True) if li[i] else []
+        li_weeks.append({"label": weeks.label(*w), "start": w[0].isoformat(), "end": w[1].isoformat(), "ok": bool(li[i]),
+                         "posts": posts, "breakdown": linkedin_posts.breakdown(posts)})
+    out["li_weeks"] = li_weeks                      # newest first: selected, previous, the one before
+    out["li_posts"] = li_weeks[0]["posts"]
+    out["li_breakdown"] = li_weeks[0]["breakdown"]
+    out["posts"] = []
+    out["notes"] = ["LinkedIn impressions, clicks, page views, unique visitors and followers gained are admin-only analytics, so they come from the LinkedIn Analytics data (sheet or CSV), summed per day over each week. Followers, posts and post reactions come from public data (Apify).",
+                    "Reach, impressions and engagement are summed over the posts published in each week (Facebook: unique people reached, and reactions + comments + shares; Instagram: reach, and likes + comments + shares + saves), not the whole account. A post's reach keeps growing for a few days after it is published. Followers are as at the end of the week."]
     return out

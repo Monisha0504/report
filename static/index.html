@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Weekly Tracker - Wepsol</title>
+  <title>Executive Snapshot - Wepsol</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,81 +12,93 @@
   <link rel="stylesheet" href="css/tracker.css">
 </head>
 <body>
-<div class="page">
-  <header class="topbar">
-    <div class="brand">
-      <img src="assets/logo.svg" alt="Wepsol">
-      <div class="heading"><h1>Weekly Tracker</h1></div>
-    </div>
-    <div class="topbar-right">
-      <div class="week-nav">
-        <button class="btn" id="prev" title="Previous period">&larr;</button>
-        <button class="btn" id="next" title="Next period">&rarr;</button>
-      </div>
-      <div class="range">
-        <label for="from">Date range</label>
-        <div class="field">
-          <input type="date" id="from"><span class="to">to</span><input type="date" id="to">
+<div class="shell">
+  <aside class="side" id="side">
+    <img class="logo" src="assets/logo.svg" alt="Wepsol">
+    <div class="side-label">Workspace</div>
+    <a class="nav active" href="#top" data-nav="top"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Executive Snapshot</a>
+    <div class="side-label">Sections</div>
+    <a class="nav" href="#traffic" data-nav="traffic"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Website traffic</a>
+    <a class="nav" href="#search" data-nav="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search &amp; keywords</a>
+    <a class="nav" href="#social" data-nav="social"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8.6 10.6 6.8-3.2M8.6 13.4l6.8 3.2"/></svg>Social media</a>
+  </aside>
+
+  <div class="main" id="top">
+    <div class="titlebar"><h1>Executive Snapshot</h1></div>
+    <div class="content">
+      <header class="head">
+        <div class="head-left">
+          <span class="pill"><i></i>WEEK BY WEEK</span>
+          <h2 id="weekTitle">Week</h2>
+          <p class="head-sub"><b id="rangeText"></b><span id="compareText"></span><span id="dataThrough" class="through"></span></p>
         </div>
-      </div>
-      <button class="btn primary" id="apply">Apply</button>
-      <div class="exp">
-        <button class="btn" id="exportBtn" aria-haspopup="true">Export &#9662;</button>
-        <div class="exp-menu" id="exportMenu" hidden>
-          <button type="button" data-f="pdf"><b>PDF</b><small>Print-ready pages of this report</small></button>
-          <button type="button" data-f="csv"><b>CSV</b><small>Every table as data (opens in Excel)</small></button>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <div class="print-only" id="printPeriod"></div>
-
-  <main class="canvas" id="canvas">
-    <div id="banner" class="banner hidden"></div>
-
-    <section class="report-section">
-      <div class="section-head"><div class="section-meta">
-        <span class="eyebrow">Section 01 · GA4</span>
-        <h2 class="section-title">Website traffic</h2>
-        <p class="section-subtitle" id="trafficSub"></p>
-      </div></div>
-      <div class="grid2">
-        <div><table class="t" id="trafficTable"></table></div>
-        <div>
-          <div class="legend">
-            <span style="--c:#2f6df6">New users</span><span style="--c:#12b5c8">Total users</span>
-            <span style="--c:#e4004f">Sessions</span><span style="--c:#6b7280">Weekly target</span>
+        <div class="head-right">
+          <div class="picker">
+            <button class="arrow" id="prev" title="Previous week">&#8249;</button>
+            <select id="weekSelect" aria-label="Choose week"></select>
+            <button class="arrow" id="next" title="Next week">&#8250;</button>
           </div>
-          <div id="chart"></div>
+          <div class="custom" id="custom" hidden>
+            <input type="date" id="from"><span>to</span><input type="date" id="to"><button class="btn primary" id="apply">Apply</button>
+          </div>
+          <button class="btn" id="pdfBtn"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>PDF</button>
+          <button class="btn" id="csvBtn"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>CSV</button>
         </div>
-      </div>
-    </section>
+      </header>
 
-    <section class="report-section">
-      <div class="section-head"><div class="section-meta">
-        <span class="eyebrow">Section 02 · Search Console</span>
-        <h2 class="section-title">Search &amp; keywords</h2>
-        <p class="section-subtitle" id="kwSub"></p>
-      </div></div>
-      <table class="t" id="kwTable"></table>
-      <table class="t" id="productKwTable"></table>
-      <div id="kwNote" class="notes"></div>
-    </section>
+      <div id="banner" class="banner hidden"></div>
 
-    <section class="report-section">
-      <div class="section-head"><div class="section-meta">
-        <span class="eyebrow">Section 03 · Social</span>
-        <h2 class="section-title">Social media marketing</h2>
-        <p class="section-subtitle" id="socialSub">Loading Facebook, Instagram and LinkedIn…</p>
-      </div></div>
-      <div class="platforms" id="platforms"></div>
-      <h3 class="subhead" id="liHead">LinkedIn posts by product and post type</h3>
-      <table class="t" id="liBreakdown"></table>
-      <div id="liNote" class="notes"></div>
-      <div class="cards" id="liCards"></div>
-    </section>
-  </main>
+      <section class="card" id="traffic">
+        <div class="card-head"><span class="num">01</span><h3>Website traffic</h3><span class="src"><i></i>Live data · Google Analytics</span></div>
+        <div class="tablewrap"><table class="grid" id="trafficTable"></table></div>
+        <p class="foot" id="trafficNote"></p>
+        <div class="chart-bar">
+          <span class="foot" style="margin:0">Charts show the same three weeks</span>
+          <div class="seg" id="scopeSeg"><button class="on" data-s="india">India</button><button data-s="overall">Overall</button></div>
+        </div>
+        <div class="two">
+          <div class="panel"><h4>Traffic trend</h4>
+            <div class="legend"><span style="--c:#e4004f">Total users</span><span style="--c:#1e2f8a">Sessions</span><span style="--c:#0f8a7a">New users</span></div>
+            <div id="trendChart"></div></div>
+          <div class="panel"><h4>Channel mix (users)</h4>
+            <div class="legend" id="channelLegend"></div>
+            <div id="channelChart"></div></div>
+        </div>
+      </section>
+
+      <section class="card" id="search">
+        <div class="card-head"><span class="num">02</span><h3>Search &amp; keywords</h3><span class="src"><i></i>Live data · Search Console</span></div>
+        <div class="tabs-row">
+          <div class="tabs" id="kwTabs"></div>
+          <div class="seg" id="blogSeg"><button data-b="no_blogs">Exclusive of blogs</button><button class="on" data-b="all">Inclusive of blogs</button></div>
+        </div>
+        <div class="two kw">
+          <div class="panel"><h4 id="kwTitle">Whole site · keywords ranking on Google</h4>
+            <table class="grid small" id="kwTable"></table>
+            <p class="foot" id="kwNote"></p></div>
+          <div class="panel"><h4>Keywords by position band</h4>
+            <div class="legend"><span style="--c:#e4004f">1–10</span><span style="--c:#f59e0b">11–20</span><span style="--c:#475569">21–50</span></div>
+            <div id="kwChart"></div></div>
+        </div>
+        <div id="kwPrint" class="print-only"></div>
+      </section>
+
+      <section class="card" id="social">
+        <div class="card-head"><span class="num">03</span><h3>Social media</h3><span class="src soc"><i></i><span id="socSrc">Meta Graph API · Apify · LinkedIn Analytics</span></span></div>
+        <p class="foot" id="socialSub">Loading Facebook, Instagram and LinkedIn…</p>
+        <div class="three" id="platforms"></div>
+        <div class="panel posts">
+          <div class="posts-head"><h4>LinkedIn posts by product and post type</h4><div class="seg" id="liWeekSeg"></div></div>
+          <table class="grid small" id="liBreakdown"></table>
+          <p class="foot" id="liNote"></p>
+          <details class="postlist" id="postDetails"><summary>Show the posts</summary><div class="cards" id="liCards"></div></details>
+        </div>
+        <p class="foot" id="socialFoot"></p>
+      </section>
+
+      <p class="legal">Numbers come straight from Google Analytics, Search Console, the Meta Graph API and LinkedIn, for the week you pick. Weeks run Tuesday to Monday, and each week is compared with the two before it. A dash means that number was not recorded.</p>
+    </div>
+  </div>
 </div>
 <script src="app.js"></script>
 </body>
