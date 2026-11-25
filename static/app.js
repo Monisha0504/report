@@ -242,7 +242,7 @@ async function loadSocial(q, id) {
     return;
   }
   $("socialSub").innerHTML = `<span class="spin"></span>Loading Facebook, Instagram and LinkedIn (this can take up to a minute)…`;
-  $("platforms").innerHTML = $("liBreakdown").innerHTML = $("liCards").innerHTML = $("liNote").textContent = $("socialFoot").textContent = "";
+  $("platforms").innerHTML = $("liBreakdown").innerHTML = $("liCards").innerHTML = $("liNote").textContent;
   $("liWeekSeg").innerHTML = "";
   try {
     const r = await fetch(apiUrl("social", q));
@@ -283,7 +283,6 @@ function renderSocial() {
   $("platforms").innerHTML = cards;
   $("liWeekSeg").innerHTML = W.map((w, i) => `<button class="${i === ui.liWeek ? "on" : ""}" data-w="${i}">${weekName(w.start, w.end)}</button>`).join("");
   renderLiPosts();
-  $("socialFoot").textContent = (s.notes || []).join(" ");
 }
 
 const PRODCOL = { fluidPrint: "#1e2f8a", fluidPro: "#0f8a7a", floTax: "#b45309", "Company / brand": "#6b7280" };
