@@ -312,10 +312,14 @@ def _rows_from_api() -> list[dict]:
 
 def _rows_from_csv() -> list[dict] | None:
     """Fallback: a CSV export of the LinkedIn Analytics tab (File > Download > CSV), saved as data/linkedin_analytics.csv."""
+    import csv
+    import io
+    text = os.getenv("LINKEDIN_CSV_DATA", "")      # CSV text pasted into a hosting variable (Vercel)
+    if text.strip():
+        return _rows_from_values(list(csv.reader(io.StringIO(text.lstrip("\ufeff")))))
     path = Path(os.getenv("LINKEDIN_CSV") or (Path(__file__).resolve().parent.parent / "data" / "linkedin_analytics.csv"))
     if not path.exists():
         return None
-    import csv
     with path.open(encoding="utf-8-sig", newline="") as f:
         return _rows_from_values(list(csv.reader(f)))
 
@@ -422,7 +426,10 @@ def linkedin(start: date, end: date) -> dict:
         if admin is None:
             admin_error = "the LinkedIn Analytics sheet has no rows for this period yet"
     except Exception as e:
-        admin_error = str(e).split(". Enable it by visiting")[0][:220]
+        detail = str(e).split(". Enable it by visiting")[0][:220]
+        admin_error = ("LinkedIn admin numbers (impressions, clicks, page views, visitors) are not connected on this site yet. "
+                       "Connect the LinkedIn Analytics sheet or paste the LinkedIn export into LINKEDIN_CSV_DATA - see the README."
+                       if "Sheets API" in detail or "no credentials" in detail or "not configured" in detail else detail)
         log.warning("linkedin admin analytics unavailable: %s", e)
     gained = admin["gained"] if admin else _followers_gained_from_snapshots("linkedin", start, end)
     return {"followers": (admin or {}).get("followers") or followers, "posts": posts, "admin": admin, "admin_error": admin_error,
