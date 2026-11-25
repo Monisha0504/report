@@ -10,7 +10,8 @@ const spanDays = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5) + 1;
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const dayName = (iso) => `${+iso.slice(8)} ${MON[+iso.slice(5, 7) - 1]}`;
 const rangeLabel = (a, b) => (a.slice(5, 7) === b.slice(5, 7) ? `${+a.slice(8)}–${dayName(b)}` : `${dayName(a)} – ${dayName(b)}`);
-const weekName = (a, b) => (spanDays(a, b) === 7 ? `Week ${dayName(a)}` : "Period " + dayName(a));
+// "Week 3 Nov" = the 3rd week of the month the period starts in (days 1-7 = week 1, 8-14 = week 2, ...)
+const weekName = (a, b) => (spanDays(a, b) === 7 ? `Week ${Math.ceil(+a.slice(8) / 7)} ${MON[+a.slice(5, 7) - 1]}` : "Period " + dayName(a));
 
 /** Change vs the earlier column. ratio: percentage points. */
 function dl(cur, prev, { ratio = false, stack = false } = {}) {
