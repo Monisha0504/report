@@ -13,7 +13,7 @@ body { padding: 0; }
 .main { flex: 1; min-width: 0; }
 .titlebar { padding: 16px 32px; border-bottom: 1px solid var(--line); }
 .titlebar h1 { margin: 0; font: 400 34px 'Instrument Serif', serif; }
-.content { padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 22px; max-width: 1400px; }
+.content { padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 22px; width: 100%; }
 
 /* header */
 .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
