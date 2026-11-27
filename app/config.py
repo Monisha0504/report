@@ -33,13 +33,12 @@ MIN_IMPRESSIONS = int(os.getenv("MIN_IMPRESSIONS", "1"))  # a query must have th
 # Traffic rules (verified: India + no job pages reproduces the dashboard's 539 users / 465 new users for 17-23 Nov)
 EXCLUDE_JOB_PAGES = os.getenv("EXCLUDE_JOB_PAGES", "true").lower() == "true"
 JOB_PAGE_TERMS = [t for t in os.getenv("JOB_PAGE_TERMS", "career,/job").split(",") if t]   # landing page contains any
-# Looker filters (read from the report): "Bot Traffic" = exclude City Singapore, City Lanzhou, Country China, Country United States;
-# "London and Amsterdam" = exclude City London, City Amsterdam.
-# South Korea and Germany are NOT in a filter I could read; they are inferred because excluding them makes new users, sessions,
-# engagement and every channel row match the Looker/sheet table (e.g. 642 vs 640 new users for 10-16 Nov).
-# Applied to the Overall column; the India column is already India-only.
-EXCLUDE_COUNTRIES = [c.strip() for c in os.getenv("EXCLUDE_COUNTRIES", "China,United States,South Korea,Germany").split(",") if c.strip()]
-EXCLUDE_CITIES = [c.strip() for c in os.getenv("EXCLUDE_CITIES", "Singapore,Lanzhou,London,Amsterdam").split(",") if c.strip()]
+# Looker filters applied to the Overall column (the India column is already India-only):
+#   "Bot Traffic": City Singapore, Lanzhou; Country China, United States
+#   "London": City London, Singapore, Boardman
+#   "Amsterdam": City Amsterdam, Lanzhou; Country China, United States, Germany, France, South Korea
+EXCLUDE_COUNTRIES = [c.strip() for c in os.getenv("EXCLUDE_COUNTRIES", "China,United States,Germany,France,South Korea").split(",") if c.strip()]
+EXCLUDE_CITIES = [c.strip() for c in os.getenv("EXCLUDE_CITIES", "Singapore,Lanzhou,London,Boardman,Amsterdam").split(",") if c.strip()]
 GSC_COUNTRY = os.getenv("GSC_COUNTRY", "ind")   # ISO-3 code for Search Console; "ind" matches the dashboard (995 vs 1,004 keywords); empty = worldwide
 
 # Weeks repeat every 7 days from this anchor (17 Nov 2026 -> 23 Nov, then 24 Nov -> 30 Nov ...)

@@ -3,7 +3,7 @@ const $ = (id) => document.getElementById(id);
 const apiUrl = (op, q = "") => "/api/index?op=" + op + q.replace("?", "&");
 const fmt = (n) => (n == null ? "—" : Math.round(n).toLocaleString("en-IN"));
 const pct = (x) => (x == null ? "—" : (x * 100).toFixed(1) + "%");
-const dur = (s) => (s == null ? "—" : `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, "0")}s`);
+const dur = (s) => (s == null ? "—" : `${Math.floor(s / 60)}m ${String(Math.floor(s % 60)).padStart(2, "0")}s`);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const addDays = (iso, n) => { const d = new Date(iso + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const spanDays = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5) + 1;
@@ -139,7 +139,7 @@ function renderTraffic() {
     }).join("") + `</tr>`;
   }
   $("trafficTable").innerHTML = h;
-  $("trafficNote").innerHTML = "<b>India</b> = visitors in India. <b>Overall</b> = visitors from every country, leaving out the traffic the Weekly Report filters as bot traffic. Career and job pages are left out of India. Channel rows count users; AI assistants and unassigned traffic are inside Total Traffic but have no row of their own.";
+  $("trafficNote").innerHTML = "<b>India</b> = visitors in India. <b>Overall</b> = visitors from every country, leaving out the traffic the Weekly Report filters as bot traffic; like the report, its figures are the daily values added up. Career and job pages are left out of India. Channel rows count users; AI assistants and unassigned traffic are inside Total Traffic but have no row of their own.";
   drawTraffic();
 }
 
@@ -386,7 +386,7 @@ function exportCsv() {
   const out = [];
   const section = (title, rows) => { out.push([title], ...rows, []); };
   const P = d.periods, hdr = (x) => P.map((p) => `${weekName(p.start, p.end)} ${x}`);
-  const f2 = (k, v) => (v == null ? "" : k === "engagement_rate" ? Math.round(v * 1000) / 10 : k === "avg_session_duration_sec" ? Math.round(v) : v);
+  const f2 = (k, v) => (v == null ? "" : k === "engagement_rate" ? Math.round(v * 1000) / 10 : k === "avg_session_duration_sec" ? Math.floor(v) : v);
   section("Website traffic (GA4)", [
     ["Metric", ...P.flatMap((p) => [`${weekName(p.start, p.end)} India`, `${weekName(p.start, p.end)} Overall`])],
     ...[["Total users", "total_users"], ["New users", "new_users"], ["Sessions", "sessions"], ["Engagement rate (%)", "engagement_rate"], ["Avg session duration (seconds)", "avg_session_duration_sec"]]

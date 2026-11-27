@@ -72,7 +72,7 @@ def _ga4(start: date, end: date, dims: list[str], metrics: list[str], india_only
         "dateRanges": [{"startDate": start.isoformat(), "endDate": end.isoformat()}],
         "dimensions": [{"name": d} for d in dims],
         "metrics": [{"name": m} for m in metrics],
-        "limit": 1000,
+        "limit": 10000,
     }
     flt = _ga4_filter(india_only)
     if flt:
@@ -91,29 +91,40 @@ METRICS = ["totalUsers", "newUsers", "sessions", "engagementRate", "averageSessi
 
 
 def _summary(start: date, end: date, india: bool) -> dict:
+    """Matches the weekly report exactly:
+    India   - the period's own totals (unique users).
+    Overall - users, new users, sessions and session duration are the SUM OF THE DAILY values (the report's table adds up its
+              days, so a visitor who returns on another day counts again, and 'duration' is the sum of daily averages);
+              engagement rate is the period's own rate."""
     rows = _ga4(start, end, [], METRICS, india)
     r = rows[0] if rows else {}
+    t = r
+    if not india:
+        days = _ga4(start, end, ["date"], METRICS, india)
+        t = {m: sum(d.get(m, 0.0) for d in days) for m in METRICS}
     return {
-        "total_users": int(r.get("totalUsers", 0)),
-        "new_users": int(r.get("newUsers", 0)),
-        "sessions": int(r.get("sessions", 0)),
+        "total_users": int(t.get("totalUsers", 0)),
+        "new_users": int(t.get("newUsers", 0)),
+        "sessions": int(t.get("sessions", 0)),
         "engagement_rate": r.get("engagementRate", 0.0),          # 0..1
-        "avg_session_duration_sec": r.get("averageSessionDuration", 0.0),
+        "avg_session_duration_sec": t.get("averageSessionDuration", 0.0),
     }
 
 
 def _channels(start: date, end: date, india: bool) -> dict:
+    """Users per channel, as in the report: India = active users of the period; Overall = total users added up day by day."""
     out = {c: 0 for c in config.CHANNEL_ORDER}
-    for r in _ga4(start, end, ["sessionDefaultChannelGroup"], ["totalUsers"], india):
+    dims = ["sessionDefaultChannelGroup"] if india else ["sessionDefaultChannelGroup", "date"]
+    metric = "activeUsers" if india else "totalUsers"
+    for r in _ga4(start, end, dims, [metric], india):
         row = config.CHANNEL_MAP.get(r["sessionDefaultChannelGroup"])
         if row:
-            out[row] += int(r["totalUsers"])
+            out[row] += int(r[metric])
     return out
 
 
 def ga4_period(start: date, end: date) -> dict:
-    """Overall + India summary and channel split for one period (4 GA4 calls, run in parallel).
-    Users/engagement are unique/ratio metrics, so each period is queried directly, never summed from days."""
+    """Overall + India summary and channel split for one period (run in parallel)."""
     with ThreadPoolExecutor(4) as ex:
         f = {
             "overall": ex.submit(_summary, start, end, False),

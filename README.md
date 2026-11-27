@@ -20,8 +20,9 @@ LinkedIn admin metrics (impressions, clicks, page views, visitors, followers gai
 Download that tab as CSV and replace `data/linkedin_analytics.csv` (or enable the Google Sheets API / a service account and it reads the sheet directly).
 
 ## Report rules (see `app/config.py`)
-- India column: country = India, job/career pages excluded. Overall column: Looker "Bot Traffic" + "London and Amsterdam" filters
-  plus South Korea and Germany (inferred), job pages kept.
+- India column: country = India, job/career pages excluded, unique totals; channel rows are active users.
+- Overall column: the report's "Bot Traffic", "London" and "Amsterdam" filters, job pages kept. Users, new users, sessions,
+  channels and session duration are daily values added up (as the report's table does); engagement rate is the period's rate.
 - Keywords: India, positions 1-100 with Keyword Planner volume; products defined in `app/products.py`.
 
 ## Export
